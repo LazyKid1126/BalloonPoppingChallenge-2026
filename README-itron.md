@@ -2,6 +2,20 @@
 
 ## Installation
 
+```sh
+# Clone the repository
+git clone https://github.com/NYCU-iTron/BalloonPoppingChallenge-2026
+cd BalloonPoppingChallenge-2026
+
+# Clone the submodules
+git submodule update --init
+
+# Setup the Python environment
+uv sync
+```
+
+## Useful Commands
+
 To add the official repository as an upstream remote:
 
 ```sh
@@ -15,10 +29,4 @@ git checkout main
 git pull upstream main
 ```
 
-```sh
-git submodule update --init
-```
-
-```sh
-uv sync
-```
+## Useful Links
