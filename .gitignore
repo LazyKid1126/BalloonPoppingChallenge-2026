@@ -7,7 +7,8 @@ BalloonPoppingGymEnv/evaluation/results/**.json
 BalloonPoppingGymEnv/evaluation/results/**.pkl
 
 # VSCode specific
-.vscode/
+.vscode/*
+!.vscode/settings.json
 
 # Python specific
 .venv
