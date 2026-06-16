@@ -30,3 +30,6 @@ git pull upstream main
 ```
 
 ## Useful Links
+
+- [Official Repository](https://github.com/ARRC-Rocket/BalloonPoppingChallenge)
+- [TASA Event Page](https://www.tasa.org.tw/zh-TW/events/detail/273c7841-ce66-400a-a501-1bf0f7fdc17e)
