@@ -8,8 +8,10 @@ class Navigator:
     def reset(self):
         pass
 
-    def compute(self, rocket_state: np.ndarray, target: np.ndarray) -> tuple[np.ndarray, float]:
+    def compute(self, rocket_state: np.ndarray, target: np.ndarray | None) -> tuple[np.ndarray, float]:
         """
-        Returns (desired_rates [wx, wy, wz], throttle) to steer toward target.
+        Returns (desired_rates [wx, wy, wz], desired_throttle) to steer toward target.
         """
-        pass
+        desired_rates = np.zeros(3)
+        desired_throttle = 1.0
+        return desired_rates, desired_throttle
