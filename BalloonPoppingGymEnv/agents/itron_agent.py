@@ -6,7 +6,7 @@ from BalloonPoppingGymEnv.agents.gnc.navigator import Navigator
 from BalloonPoppingGymEnv.agents.gnc.controller import Controller
 
 
-class iTronAgent(BaseAgent):
+class ITronAgent(BaseAgent):
     def __init__(self, given_parameters):
         super().__init__(given_parameters)
 
