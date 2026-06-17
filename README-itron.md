@@ -14,6 +14,16 @@ git submodule update --init
 uv sync
 ```
 
+## Architecture
+
+## Timeline
+
+- 2026-08: End of application
+- 2026-09: Preliminary round
+- 2026-11: Final round
+
+For details of the progress, refer to the [progress](https://app.notion.com/p/zebra314/Balloon-Popping-Challenge-37cdda6dcd62804187f3db8636c81538?source=copy_link) notion page.
+
 ## Useful Commands
 
 To add the official repository as an upstream remote:
