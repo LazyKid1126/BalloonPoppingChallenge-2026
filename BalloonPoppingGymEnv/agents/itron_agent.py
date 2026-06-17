@@ -1,4 +1,3 @@
-import numpy as np
 from BalloonPoppingGymEnv.agents.base_agent import BaseAgent
 from BalloonPoppingGymEnv.agents.gnc.estimator import Estimator
 from BalloonPoppingGymEnv.agents.gnc.selector import Selector
@@ -16,7 +15,6 @@ class ITronAgent(BaseAgent):
         self.navigator = Navigator(given_parameters)
         self.controller = Controller(given_parameters)
 
-
     def reset(self) -> None:
         self.estimator.reset()
         self.selector.reset()
@@ -26,8 +24,8 @@ class ITronAgent(BaseAgent):
     def get_action(self, observation: dict) -> dict:
         rocket_state = self.estimator.update(observation["rocket_sensors"])
         target = self.selector.select(observation, rocket_state)
-        desired_rates, throttle = self.navigator.compute(rocket_state, target)
-        tvc, roll = self.controller.compute(observation["rocket_sensors"][:3], desired_rates)
+        desired_rates, desired_throttle = self.navigator.compute(rocket_state, target)
+        tvc, roll, throttle = self.controller.compute(observation["rocket_sensors"][:3], desired_rates, desired_throttle)
 
         # Set launch parameters
         t = observation["simulation_time"]
