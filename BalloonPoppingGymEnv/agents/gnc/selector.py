@@ -1,9 +1,13 @@
+import logging
 import numpy as np
 
 
 class Selector:
     def __init__(self, given_parameters):
+        self.logger = logging.getLogger(__name__)
         self.given_parameters = given_parameters
+
+        self.current_target_idx = None
 
     def reset(self):
         pass
@@ -22,6 +26,36 @@ class Selector:
 
     def select(self, observation: dict, rocket_state: np.ndarray) -> np.ndarray | None:
         """
-        Returns target balloon position [x, y, z], or None if no active balloon.
+        Parameters
+        ----------
+
+        Returns
+        -------
         """
-        pass
+        balloon_status = observation["balloon_status"].flatten()
+        balloon_states = observation["balloon_states"]
+        rocket_pos = rocket_state[0:3]
+
+        # Keep tracking current target if it remains active
+        if self.current_target_idx is not None and balloon_status[self.current_target_idx] == 1:
+            return balloon_states[self.current_target_idx, 0:3]
+
+        min_dist = float("inf")
+        best_target_idx = None
+
+        # Greedy search for the closest active balloon
+        for i in range(len(balloon_status)):
+            if balloon_status[i] == 1:
+                balloon_pos = balloon_states[i, 0:3]
+                dist = np.linalg.norm(balloon_pos - rocket_pos)
+                if dist < min_dist:
+                    min_dist = dist
+                    best_target_idx = i
+
+        # Update current target index
+        if best_target_idx is not None:
+            self.current_target_idx = best_target_idx
+            return balloon_states[best_target_idx, 0:3]
+
+        self.current_target_idx = None
+        return None
