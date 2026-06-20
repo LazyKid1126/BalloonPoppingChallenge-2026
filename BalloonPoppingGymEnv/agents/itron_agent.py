@@ -10,14 +10,26 @@ from BalloonPoppingGymEnv.utils.schema import Schema
 class ITronAgent(BaseAgent):
     def __init__(self, given_parameters):
         """
+        Initializes the agent with environment and rocket configurations.
+
         Parameters
         ----------
         given_parameters : dict
-            A nested dictionary containing configuration metadata:
-            - environment : dict
-            - simulation : dict
-            - balloon : dict
-            - rocket : dict
+            Nested configuration metadata structured as follows:
+                - environment:
+                    date : list[int] -> [year, month, day, hour]
+                    latitude / longitude / elevation : float -> [deg, deg, m]
+                - simulation:
+                    time_step / max_time : float -> [s, s]
+                - balloon:
+                    release_interval / num / radius / mass : [s, int, m, kg]
+                - rocket:
+                    tank : liquid, gas parameters and initial mass [kg, kg/s, m]
+                    motor : thrust_source [N], burn_time [s], and geometric specs
+                    rocket_body : structural mass [kg] and inertia [kg·m²]
+                    nose / fins : aerodynamic shapes and assembly positions [m]
+                    sensors : sampling_rate [Hz] and noise parameters
+                    control : gimbal_range [deg], max_roll_torque [Nm], limits
         """
         super().__init__(given_parameters)
         self.logger = logging.getLogger(__name__)

@@ -26,11 +26,22 @@ class Selector:
 
     def select(self, observation: dict, rocket_state: np.ndarray) -> np.ndarray | None:
         """
+        Selects the target tracking balloon from the active environment cluster.
+
         Parameters
         ----------
+        observation : dict
+            Current telemetry dictionary structured as follows:
+            - simulation_time : float -> [s]
+            - balloon_status : np.ndarray -> shape (N, 1), binary flags [1: active, 0: popped]
+            - balloon_states : np.ndarray -> shape (N, 6), tracking states [x, y, z, vx, vy, vz] in [m, m/s]
+            - rocket_sensors : np.ndarray -> shape (12,), [gyro(3), acc(3), pos(3), vel(3)] in [rad/s, m/s², m, m/s]
 
         Returns
         -------
+        balloon_state : np.ndarray or None
+            A 6-element array containing the full target state vector [x, y, z, vx, vy, vz]
+            of the selected balloon, or None if no active targets remain.
         """
         balloon_status = observation[Schema.Observation.BALLOON_STATUS].flatten()
         balloon_states = observation[Schema.Observation.BALLOON_STATES]
