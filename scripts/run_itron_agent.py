@@ -5,7 +5,6 @@ from BalloonPoppingGymEnv.evaluation.evaluate import load_scenario_parameters
 from BalloonPoppingGymEnv.agents.itron_agent import ITronAgent
 
 scenario_number = 0
-agent_name = "iTron Agent"
 
 def run_for_development():
 
@@ -60,27 +59,11 @@ def run_for_development():
     plt.tight_layout()
     plt.show()
 
-    print(f"Scenario {scenario_number} evaluation completed with agent '{agent_name}'.")
+    print(f"Scenario {scenario_number} evaluation completed.")
     print(f"Total reward: {info['popped_count']}")
 
     # env._rocket_flight.all_info() # Uncomment to print all info from RocketPy
 
-# def run_for_evaluation():
-#     from BalloonPoppingGymEnv.evaluation.evaluate import evaluate_scenario
-
-#     # Load agent class dynamically from specified module path.
-#     # Equivalent to run command: python evaluate.py <path_to_eval_config.yaml>
-#     evaluate_scenario(
-#         ITronAgent,
-#         agent_kwargs=,
-#         agent_name=agent_name,
-#         scenario_number=scenario_number,
-#         render_mode='matplotlib',
-#     )
-
 if __name__ == "__main__":
     # Use this function for development and debugging purposes.
     run_for_development()
-
-    # Use this function for evaluation purposes.
-    # run_for_evaluation()
