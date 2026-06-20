@@ -13,7 +13,7 @@ class ColorFormatter(logging.Formatter):
     def format(self, record):
         color = self.COLORS.get(record.levelname, '')
 
-        asctime = self.formatTime(record, self.datefmt)
+        asctime = f"{self.formatTime(record, self.datefmt)}.{int(record.msecs):03d}"
         levelname = f"{color}{record.levelname}{self.RESET}"
         name = record.name
         message = f"{color}{record.getMessage()}{self.RESET}"
