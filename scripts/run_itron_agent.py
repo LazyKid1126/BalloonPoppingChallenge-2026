@@ -13,7 +13,7 @@ def run_for_development():
     scenario_parameters, given_parameters = load_scenario_parameters(scenario_number)
 
     # Create environment with scenario parameters turn off rendering to make own plots
-    env = BalloonPoppingEnv(render_mode="matplotlib", parameters=scenario_parameters)
+    env = BalloonPoppingEnv(render_mode=None, parameters=scenario_parameters)
 
     # Instantiate agent with given parameters and any additional user kwargs
     agent = ITronAgent(given_parameters)
