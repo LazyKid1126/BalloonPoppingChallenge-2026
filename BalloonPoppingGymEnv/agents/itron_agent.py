@@ -1,3 +1,4 @@
+import logging
 from BalloonPoppingGymEnv.agents.base_agent import BaseAgent
 from BalloonPoppingGymEnv.agents.gnc.estimator import Estimator
 from BalloonPoppingGymEnv.agents.gnc.selector import Selector
@@ -7,7 +8,18 @@ from BalloonPoppingGymEnv.agents.gnc.controller import Controller
 
 class ITronAgent(BaseAgent):
     def __init__(self, given_parameters):
+        """
+        Parameters
+        ----------
+        given_parameters : dict
+            A nested dictionary containing configuration metadata:
+            - environment: dict
+            - simulation: dict
+            - balloon: dict
+            - rocket: dict
+        """
         super().__init__(given_parameters)
+        self.logger = logging.getLogger(__name__)
 
         # Initialize GNC components
         self.estimator = Estimator(given_parameters)
