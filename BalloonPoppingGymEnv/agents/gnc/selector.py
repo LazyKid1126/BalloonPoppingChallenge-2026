@@ -49,7 +49,7 @@ class Selector:
 
         # Keep tracking current target if it remains active
         if self.current_target_idx is not None and balloon_status[self.current_target_idx] == 1:
-            return balloon_states[self.current_target_idx, 0:3]
+            return balloon_states[self.current_target_idx]
 
         min_dist = float("inf")
         best_target_idx = None
@@ -66,7 +66,7 @@ class Selector:
         # Update current target index
         if best_target_idx is not None:
             self.current_target_idx = best_target_idx
-            return balloon_states[best_target_idx, 0:3]
+            return balloon_states[best_target_idx]
 
         self.current_target_idx = None
         return None
