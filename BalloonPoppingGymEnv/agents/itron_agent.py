@@ -13,10 +13,10 @@ class ITronAgent(BaseAgent):
         ----------
         given_parameters : dict
             A nested dictionary containing configuration metadata:
-            - environment: dict
-            - simulation: dict
-            - balloon: dict
-            - rocket: dict
+            - environment : dict
+            - simulation : dict
+            - balloon : dict
+            - rocket : dict
         """
         super().__init__(given_parameters)
         self.logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class ITronAgent(BaseAgent):
         self.controller.reset()
 
     def get_action(self, observation: dict) -> dict:
-        rocket_state = self.estimator.update(observation["rocket_sensors"])
+        rocket_state = self.estimator.update(observation)
         target = self.selector.select(observation, rocket_state)
         desired_rates, desired_throttle = self.navigator.compute(rocket_state, target)
         tvc, roll, throttle = self.controller.compute(observation["rocket_sensors"][:3], desired_rates, desired_throttle)
