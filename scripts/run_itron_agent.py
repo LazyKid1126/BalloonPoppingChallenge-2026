@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from BalloonPoppingGymEnv.envs.balloon_world import BalloonPoppingEnv
 from BalloonPoppingGymEnv.evaluation.evaluate import load_scenario_parameters
 from BalloonPoppingGymEnv.agents.itron_agent import ITronAgent
+from BalloonPoppingGymEnv.utils.setup_logging import setup_logging
 
 scenario_number = 0
 
@@ -65,5 +66,5 @@ def run_for_development():
     # env._rocket_flight.all_info() # Uncomment to print all info from RocketPy
 
 if __name__ == "__main__":
-    # Use this function for development and debugging purposes.
+    setup_logging()
     run_for_development()
