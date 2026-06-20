@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-
+from BalloonPoppingGymEnv.utils.schema import Schema
 
 class Selector:
     def __init__(self, given_parameters):
@@ -32,8 +32,8 @@ class Selector:
         Returns
         -------
         """
-        balloon_status = observation["balloon_status"].flatten()
-        balloon_states = observation["balloon_states"]
+        balloon_status = observation[Schema.Observation.BALLOON_STATUS].flatten()
+        balloon_states = observation[Schema.Observation.BALLOON_STATES]
         rocket_pos = rocket_state[0:3]
 
         # Keep tracking current target if it remains active

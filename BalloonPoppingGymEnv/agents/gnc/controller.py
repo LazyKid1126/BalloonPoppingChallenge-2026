@@ -1,14 +1,15 @@
 import numpy as np
-
+from BalloonPoppingGymEnv.utils.schema import Schema
 
 class Controller:
     def __init__(self, given_parameters):
         self.given_parameters = given_parameters
-        control_cfg = given_parameters["rocket"]["control"]
-        self.max_gimbal = control_cfg["gimbal_range"]
-        self.max_roll = control_cfg["max_roll_torque"]
-        self.throttle_min = control_cfg["throttle_range"][0]
-        self.throttle_max = control_cfg["throttle_range"][1]
+
+        control_cfg = given_parameters[Schema.Given.Section.ROCKET][Schema.Given.Rocket.CONTROL]
+        self.max_gimbal = control_cfg[Schema.Given.Control.GIMBAL_RANGE]
+        self.max_roll = control_cfg[Schema.Given.Control.MAX_ROLL_TORQUE]
+        self.throttle_min = control_cfg[Schema.Given.Control.THROTTLE_RANGE][0]
+        self.throttle_max = control_cfg[Schema.Given.Control.THROTTLE_RANGE][1]
 
     def reset(self):
         pass
