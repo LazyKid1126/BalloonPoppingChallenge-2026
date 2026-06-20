@@ -33,7 +33,7 @@ def run_for_development():
         angular_rates = np.append(angular_rates, info["rocket_states"][10:13].reshape(-1, 1), axis=1)
         time = np.append(time, observation["simulation_time"])
 
-        print(f"simulation_time: {observation['simulation_time']:.2f} sec, reward: {reward:.2f}", end='\r')
+        print(f"simulation_time: {observation['simulation_time']:.2f} sec, reward: {info['popped_count']:.2f}", end='\r')
 
     plt.subplot(2, 1, 1)
     plt.plot(time, angular_rates[0], 'r-', label='x_rate')
