@@ -48,9 +48,9 @@ class ITronAgent(BaseAgent):
 
     def get_action(self, observation: dict) -> dict:
         rocket_state = self.estimator.update(observation)
-        target = self.selector.select(observation, rocket_state)
-        desired_rates, desired_throttle = self.navigator.compute(rocket_state, target)
-        tvc, roll, throttle = self.controller.compute(observation["rocket_sensors"][:3], desired_rates, desired_throttle)
+        balloon_state = self.selector.select(observation, rocket_state)
+        desired_rates, desired_throttle = self.navigator.compute(balloon_state, rocket_state)
+        tvc, roll, throttle = self.controller.compute(observation, desired_rates, desired_throttle)
 
         # Set launch parameters
         t = observation[Schema.Observation.SIMULATION_TIME]
