@@ -1,0 +1,14 @@
+# Optional RL dependencies for A5000 experiments.
+#
+# Install CUDA-enabled PyTorch for your driver/CUDA stack first, following:
+# https://pytorch.org/get-started/locally/
+#
+# Example, adjust the CUDA wheel index as needed:
+#   uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+#
+# Then install this file:
+#   uv pip install -r requirements-rl.txt
+
+stable-baselines3>=2.9.0
+sb3-contrib>=2.9.0
+tensorboard>=2.19.0

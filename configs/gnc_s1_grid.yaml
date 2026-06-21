@@ -1,0 +1,42 @@
+success_thresholds: [10, 20]
+variants:
+  - name: predictive_nearest
+    agent_kwargs:
+      planner_mode: predictive_nearest
+      pn_gain: 0.0
+  - name: urgency_aware
+    agent_kwargs:
+      planner_mode: urgency_aware
+      pn_gain: 0.0
+  - name: cluster_predictive
+    agent_kwargs:
+      planner_mode: cluster_predictive
+      pn_gain: 0.0
+  - name: cluster_predictive_pn3
+    agent_kwargs:
+      planner_mode: cluster_predictive
+      pn_gain: 3.0
+  - name: cluster_predictive_sign_x_neg
+    agent_kwargs:
+      planner_mode: cluster_predictive
+      pn_gain: 0.0
+      tvc_sign_x: -1.0
+      tvc_sign_y: 1.0
+  - name: cluster_predictive_sign_y_neg
+    agent_kwargs:
+      planner_mode: cluster_predictive
+      pn_gain: 0.0
+      tvc_sign_x: 1.0
+      tvc_sign_y: -1.0
+  - name: cluster_predictive_low_gain
+    agent_kwargs:
+      planner_mode: cluster_predictive
+      pn_gain: 0.0
+      kp_tvc: 8.0
+      kd_tvc: 1.5
+  - name: cluster_predictive_high_gain
+    agent_kwargs:
+      planner_mode: cluster_predictive
+      pn_gain: 0.0
+      kp_tvc: 16.0
+      kd_tvc: 3.0
