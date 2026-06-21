@@ -82,6 +82,31 @@ class TestScenario1GncAgent(unittest.TestCase):
             np.array([0.0, 0.0]),
         )
 
+    def test_launch_vector_clamps_low_scenario1_cluster_angle(self):
+        agent = Scenario1GncAgent(
+            _given_parameters(),
+            min_launch_inclination=75.0,
+            launch_prediction_time=8.0,
+        )
+        observation = {
+            "simulation_time": 3.5,
+            "balloon_status": np.array([[1], [1]]),
+            "balloon_states": np.array(
+                [
+                    [-92.0, 79.0, 26.0, 0.0, 0.0, 6.0],
+                    [-94.0, 82.0, 27.0, 0.0, 0.0, 6.0],
+                ]
+            ),
+            "rocket_sensors": np.full(12, np.nan),
+        }
+        nav = agent._navigation_update(observation, 3.5, mutate=False)
+
+        launch_vector = agent._choose_launch_vector(observation, nav)
+        launch_angles = vector_to_inclination_heading(launch_vector)
+
+        self.assertGreaterEqual(launch_angles[0], 75.0)
+        self.assertTrue(np.all(np.isfinite(launch_vector)))
+
     def test_get_action_tvc_is_clipped_and_finite(self):
         agent = Scenario1GncAgent(_given_parameters(), kp_tvc=1000.0)
         agent.rocket_launched = True

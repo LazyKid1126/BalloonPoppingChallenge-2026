@@ -97,6 +97,45 @@ def vector_to_inclination_heading(vector: np.ndarray) -> np.ndarray:
     return np.array([_clip(inclination, 0.0, 90.0), heading], dtype=float)
 
 
+def inclination_heading_to_vector(inclination_heading: np.ndarray) -> np.ndarray:
+    """Convert [inclination, heading] in degrees to a launch-frame unit vector."""
+
+    inclination = math.radians(float(inclination_heading[0]))
+    heading = math.radians(float(inclination_heading[1]))
+    horizontal = math.cos(inclination)
+    return _unit(
+        np.array(
+            [
+                horizontal * math.sin(heading),
+                horizontal * math.cos(heading),
+                math.sin(inclination),
+            ],
+            dtype=float,
+        )
+    )
+
+
+def quaternion_from_inclination_heading(inclination_heading: np.ndarray) -> np.ndarray:
+    """Return the initial attitude quaternion used for launch pointing."""
+
+    inclination = float(inclination_heading[0])
+    heading = float(inclination_heading[1])
+    psi = math.radians(-heading)
+    theta = math.radians(inclination - 90.0)
+    phi = 0.0
+
+    q = np.array(
+        [
+            math.cos(theta / 2.0) * math.cos((phi + psi) / 2.0),
+            math.sin(theta / 2.0) * math.cos((phi - psi) / 2.0),
+            math.sin(theta / 2.0) * math.sin((phi - psi) / 2.0),
+            math.cos(theta / 2.0) * math.sin((phi + psi) / 2.0),
+        ],
+        dtype=float,
+    )
+    return q / max(_norm(q), 1e-12)
+
+
 @dataclass
 class NavigationState:
     time: float
@@ -146,6 +185,12 @@ class Scenario1GncAgent(BaseAgent):
         self.min_launch_time = float(kwargs.get("min_launch_time", 1.0))
         self.max_launch_time = float(kwargs.get("max_launch_time", 6.0))
         self.min_released = int(kwargs.get("min_released", 8))
+        self.min_launch_inclination = float(kwargs.get("min_launch_inclination", 75.0))
+        self.launch_prediction_time = float(kwargs.get("launch_prediction_time", 8.0))
+        self.boost_min_time = float(kwargs.get("boost_min_time", 2.0))
+        self.boost_max_time = float(kwargs.get("boost_max_time", 5.0))
+        self.guidance_start_altitude = float(kwargs.get("guidance_start_altitude", 80.0))
+        self.guidance_start_speed = float(kwargs.get("guidance_start_speed", 45.0))
 
         self.min_dwell = float(kwargs.get("min_dwell", 0.5))
         self.switch_margin = float(kwargs.get("switch_margin", 0.20))
@@ -173,6 +218,7 @@ class Scenario1GncAgent(BaseAgent):
         self.elevation = float(self.given_parameters["environment"]["elevation"])
 
         self.rocket_launched = False
+        self.launched_at = None
         self.launch_vector = np.array([0.0, 0.0, 1.0], dtype=float)
         self.launch_inclination_heading = np.array([90.0, 0.0], dtype=float)
 
@@ -208,6 +254,10 @@ class Scenario1GncAgent(BaseAgent):
             launch = self._should_launch(observation, t)
             if launch:
                 self.rocket_launched = True
+                self.launched_at = t
+                self.quaternion = quaternion_from_inclination_heading(
+                    self.launch_inclination_heading
+                )
             return {
                 "launch": bool(launch),
                 "launch_inclination_heading": self.launch_inclination_heading.copy(),
@@ -218,7 +268,14 @@ class Scenario1GncAgent(BaseAgent):
 
         candidates = self._build_candidates(observation, nav)
         target = self._select_target(candidates, observation["balloon_status"], t)
-        tvc, roll = self._compute_control(nav, target)
+        if self._boost_guidance_active(nav):
+            tvc, roll = self._compute_control(
+                nav,
+                None,
+                desired_direction=self.launch_vector,
+            )
+        else:
+            tvc, roll = self._compute_control(nav, target)
 
         return {
             "launch": True,
@@ -309,7 +366,10 @@ class Scenario1GncAgent(BaseAgent):
         else:
             active_indices = released_indices
 
-        positions = states[active_indices, :3]
+        positions = (
+            states[active_indices, :3]
+            + states[active_indices, 3:6] * self.launch_prediction_time
+        )
         if positions.size == 0:
             return np.array([0.0, 0.0, 1.0], dtype=float)
 
@@ -323,7 +383,27 @@ class Scenario1GncAgent(BaseAgent):
             if score > best_score:
                 best_score = score
                 best_center = pos
-        return _unit(best_center - nav.position, np.array([0.0, 0.0, 1.0]))
+        raw_vector = _unit(best_center - nav.position, np.array([0.0, 0.0, 1.0]))
+        launch_angles = vector_to_inclination_heading(raw_vector)
+        launch_angles[0] = max(
+            float(launch_angles[0]),
+            _clip(self.min_launch_inclination, 0.0, 90.0),
+        )
+        return inclination_heading_to_vector(launch_angles)
+
+    def _boost_guidance_active(self, nav: NavigationState) -> bool:
+        if self.launched_at is None:
+            return False
+
+        elapsed = nav.time - float(self.launched_at)
+        if elapsed < self.boost_min_time:
+            return True
+        if elapsed >= self.boost_max_time:
+            return False
+
+        altitude_agl = float(nav.position[2] - self.elevation)
+        speed = _norm(nav.velocity)
+        return altitude_agl < self.guidance_start_altitude and speed < self.guidance_start_speed
 
     def _update_first_seen(self, observation, time_sec: float) -> None:
         statuses = np.asarray(observation["balloon_status"]).reshape(-1)
@@ -552,8 +632,11 @@ class Scenario1GncAgent(BaseAgent):
         self,
         nav: NavigationState,
         target: TargetCandidate | None,
+        desired_direction: np.ndarray | None = None,
     ) -> tuple[np.ndarray, float]:
-        if target is None:
+        if desired_direction is not None:
+            desired_direction = _unit(desired_direction, nav.nose_direction)
+        elif target is None:
             desired_direction = nav.nose_direction
         else:
             aim_point = target.aim_point.copy()
