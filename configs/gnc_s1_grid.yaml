@@ -1,5 +1,6 @@
 success_thresholds: [10, 20]
 variants:
+  # --- All main variants use aggressive vertical-first boost (new defaults) ---
   - name: predictive_nearest
     agent_kwargs:
       planner_mode: predictive_nearest
@@ -40,3 +41,15 @@ variants:
       pn_gain: 0.0
       kp_tvc: 16.0
       kd_tvc: 3.0
+
+  # --- Conservative boost (v2 baseline) for comparison ---
+  - name: cluster_predictive_conservative_boost
+    agent_kwargs:
+      planner_mode: cluster_predictive
+      pn_gain: 0.0
+      min_launch_inclination: 75.0
+      launch_prediction_time: 8.0
+      boost_min_time: 2.0
+      boost_max_time: 5.0
+      guidance_start_altitude: 80.0
+      guidance_start_speed: 45.0

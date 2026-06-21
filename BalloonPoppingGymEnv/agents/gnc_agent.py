@@ -185,12 +185,14 @@ class Scenario1GncAgent(BaseAgent):
         self.min_launch_time = float(kwargs.get("min_launch_time", 1.0))
         self.max_launch_time = float(kwargs.get("max_launch_time", 6.0))
         self.min_released = int(kwargs.get("min_released", 8))
-        self.min_launch_inclination = float(kwargs.get("min_launch_inclination", 75.0))
-        self.launch_prediction_time = float(kwargs.get("launch_prediction_time", 8.0))
-        self.boost_min_time = float(kwargs.get("boost_min_time", 2.0))
-        self.boost_max_time = float(kwargs.get("boost_max_time", 5.0))
-        self.guidance_start_altitude = float(kwargs.get("guidance_start_altitude", 80.0))
-        self.guidance_start_speed = float(kwargs.get("guidance_start_speed", 45.0))
+        self.min_launch_inclination = float(kwargs.get("min_launch_inclination", 85.0))
+        self.launch_prediction_time = float(kwargs.get("launch_prediction_time", 12.0))
+        self.boost_min_time = float(kwargs.get("boost_min_time", 1.0))
+        self.boost_max_time = float(kwargs.get("boost_max_time", 2.5))
+        self.guidance_start_altitude = float(kwargs.get("guidance_start_altitude", 25.0))
+        self.guidance_start_speed = float(kwargs.get("guidance_start_speed", 15.0))
+        self.gravity_turn_altitude = float(kwargs.get("gravity_turn_altitude", 80.0))
+        self.gravity_turn_speed = float(kwargs.get("gravity_turn_speed", 40.0))
 
         self.min_dwell = float(kwargs.get("min_dwell", 0.5))
         self.switch_margin = float(kwargs.get("switch_margin", 0.20))
@@ -275,7 +277,8 @@ class Scenario1GncAgent(BaseAgent):
                 desired_direction=self.launch_vector,
             )
         else:
-            tvc, roll = self._compute_control(nav, target)
+            blended = self._gravity_turn_blend(nav, target)
+            tvc, roll = self._compute_control(nav, target, desired_direction=blended)
 
         return {
             "launch": True,
@@ -404,6 +407,34 @@ class Scenario1GncAgent(BaseAgent):
         altitude_agl = float(nav.position[2] - self.elevation)
         speed = _norm(nav.velocity)
         return altitude_agl < self.guidance_start_altitude and speed < self.guidance_start_speed
+
+    def _gravity_turn_blend(
+        self,
+        nav: NavigationState,
+        target: TargetCandidate | None,
+    ) -> np.ndarray | None:
+        """Blend between vertical climb and target pursuit.
+
+        Returns a blended desired direction, or None to let _compute_control
+        use the target aim-point directly (when fully transitioned).
+        """
+        altitude_agl = float(nav.position[2] - self.elevation)
+        speed = _norm(nav.velocity)
+
+        alpha_alt = _clip(altitude_agl / max(self.gravity_turn_altitude, 1.0), 0.0, 1.0)
+        alpha_speed = _clip(speed / max(self.gravity_turn_speed, 1.0), 0.0, 1.0)
+        alpha = max(alpha_alt, alpha_speed)
+
+        if alpha >= 0.99:
+            return None
+
+        up = np.array([0.0, 0.0, 1.0], dtype=float)
+        if target is None:
+            return up
+
+        aim_direction = _unit(target.aim_point - nav.position, nav.nose_direction)
+        blended = (1.0 - alpha) * up + alpha * aim_direction
+        return _unit(blended, nav.nose_direction)
 
     def _update_first_seen(self, observation, time_sec: float) -> None:
         statuses = np.asarray(observation["balloon_status"]).reshape(-1)
