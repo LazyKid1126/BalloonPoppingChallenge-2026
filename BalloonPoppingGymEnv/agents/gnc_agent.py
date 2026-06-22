@@ -193,6 +193,8 @@ class Scenario1GncAgent(BaseAgent):
         self.guidance_start_speed = float(kwargs.get("guidance_start_speed", 15.0))
         self.gravity_turn_altitude = float(kwargs.get("gravity_turn_altitude", 80.0))
         self.gravity_turn_speed = float(kwargs.get("gravity_turn_speed", 40.0))
+        self.terminal_intercept_dist = float(kwargs.get("terminal_intercept_dist", 30.0))
+        self.terminal_gain_mult = float(kwargs.get("terminal_gain_mult", 1.5))
 
         self.min_dwell = float(kwargs.get("min_dwell", 0.5))
         self.switch_margin = float(kwargs.get("switch_margin", 0.20))
@@ -277,8 +279,14 @@ class Scenario1GncAgent(BaseAgent):
                 desired_direction=self.launch_vector,
             )
         else:
-            blended = self._gravity_turn_blend(nav, target)
-            tvc, roll = self._compute_control(nav, target, desired_direction=blended)
+            blended, in_terminal = self._gravity_turn_blend(nav, target, observation)
+            if in_terminal:
+                tvc, roll = self._compute_control(
+                    nav, target, desired_direction=blended,
+                    gain_mult=self.terminal_gain_mult,
+                )
+            else:
+                tvc, roll = self._compute_control(nav, target, desired_direction=blended)
 
         return {
             "launch": True,
@@ -412,29 +420,41 @@ class Scenario1GncAgent(BaseAgent):
         self,
         nav: NavigationState,
         target: TargetCandidate | None,
-    ) -> np.ndarray | None:
+        observation=None,
+    ) -> tuple[np.ndarray | None, bool]:
         """Blend between vertical climb and target pursuit.
 
-        Returns a blended desired direction, or None to let _compute_control
-        use the target aim-point directly (when fully transitioned).
+        Returns (blended_direction, in_terminal).
+        blended_direction is None when fully transitioned (alpha>=0.99).
+        in_terminal is True when within terminal intercept distance.
         """
         altitude_agl = float(nav.position[2] - self.elevation)
         speed = _norm(nav.velocity)
+
+        # Terminal intercept override: if closing on a target, go full authority
+        in_terminal = False
+        if target is not None and self.terminal_intercept_dist > 0:
+            rel = target.aim_point - nav.position
+            dist = _norm(rel)
+            closing = float(np.dot(nav.velocity, _unit(rel))) if dist > 0.1 else 0.0
+            if dist < self.terminal_intercept_dist and closing > 0:
+                in_terminal = True
+                return None, True  # full authority toward target
 
         alpha_alt = _clip(altitude_agl / max(self.gravity_turn_altitude, 1.0), 0.0, 1.0)
         alpha_speed = _clip(speed / max(self.gravity_turn_speed, 1.0), 0.0, 1.0)
         alpha = max(alpha_alt, alpha_speed)
 
         if alpha >= 0.99:
-            return None
+            return None, False
 
         up = np.array([0.0, 0.0, 1.0], dtype=float)
         if target is None:
-            return up
+            return up, False
 
         aim_direction = _unit(target.aim_point - nav.position, nav.nose_direction)
         blended = (1.0 - alpha) * up + alpha * aim_direction
-        return _unit(blended, nav.nose_direction)
+        return _unit(blended, nav.nose_direction), False
 
     def _update_first_seen(self, observation, time_sec: float) -> None:
         statuses = np.asarray(observation["balloon_status"]).reshape(-1)
@@ -664,6 +684,7 @@ class Scenario1GncAgent(BaseAgent):
         nav: NavigationState,
         target: TargetCandidate | None,
         desired_direction: np.ndarray | None = None,
+        gain_mult: float = 1.0,
     ) -> tuple[np.ndarray, float]:
         if desired_direction is not None:
             desired_direction = _unit(desired_direction, nav.nose_direction)
@@ -682,10 +703,12 @@ class Scenario1GncAgent(BaseAgent):
         error_launch = np.cross(nav.nose_direction, desired_direction)
         error_body = rotate_launch_to_body(nav.quaternion, error_launch)
 
+        kp = self.kp_tvc * gain_mult
+        kd = self.kd_tvc * gain_mult
         tvc = np.array(
             [
-                self.tvc_sign_x * (self.kp_tvc * error_body[0] - self.kd_tvc * nav.gyro[0]),
-                self.tvc_sign_y * (self.kp_tvc * error_body[1] - self.kd_tvc * nav.gyro[1]),
+                self.tvc_sign_x * (kp * error_body[0] - kd * nav.gyro[0]),
+                self.tvc_sign_y * (kp * error_body[1] - kd * nav.gyro[1]),
             ],
             dtype=float,
         )

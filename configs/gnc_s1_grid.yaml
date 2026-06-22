@@ -1,55 +1,67 @@
 success_thresholds: [10, 20]
 variants:
-  # --- All main variants use aggressive vertical-first boost (new defaults) ---
+  # === Baseline planners (slow blend 80/40 + terminal intercept 30m) ===
   - name: predictive_nearest
     agent_kwargs:
       planner_mode: predictive_nearest
-      pn_gain: 0.0
-  - name: urgency_aware
-    agent_kwargs:
-      planner_mode: urgency_aware
-      pn_gain: 0.0
   - name: cluster_predictive
     agent_kwargs:
       planner_mode: cluster_predictive
-      pn_gain: 0.0
-  - name: cluster_predictive_pn3
+  - name: urgency_aware
     agent_kwargs:
-      planner_mode: cluster_predictive
-      pn_gain: 3.0
-  - name: cluster_predictive_sign_x_neg
+      planner_mode: urgency_aware
+
+  # === Low gain sweep (R2 showed kp=8 > kp=12) ===
+  - name: low_gain_kp8
     agent_kwargs:
-      planner_mode: cluster_predictive
-      pn_gain: 0.0
-      tvc_sign_x: -1.0
-      tvc_sign_y: 1.0
-  - name: cluster_predictive_sign_y_neg
-    agent_kwargs:
-      planner_mode: cluster_predictive
-      pn_gain: 0.0
-      tvc_sign_x: 1.0
-      tvc_sign_y: -1.0
-  - name: cluster_predictive_low_gain
-    agent_kwargs:
-      planner_mode: cluster_predictive
-      pn_gain: 0.0
+      planner_mode: predictive_nearest
       kp_tvc: 8.0
       kd_tvc: 1.5
-  - name: cluster_predictive_high_gain
+  - name: very_low_gain_kp6
     agent_kwargs:
-      planner_mode: cluster_predictive
-      pn_gain: 0.0
-      kp_tvc: 16.0
-      kd_tvc: 3.0
+      planner_mode: predictive_nearest
+      kp_tvc: 6.0
+      kd_tvc: 1.0
+  - name: low_gain_kp10
+    agent_kwargs:
+      planner_mode: predictive_nearest
+      kp_tvc: 10.0
+      kd_tvc: 1.8
 
-  # --- Conservative boost (v2 baseline) for comparison ---
-  - name: cluster_predictive_conservative_boost
+  # === Terminal intercept distance sweep ===
+  - name: terminal_20m
+    agent_kwargs:
+      planner_mode: predictive_nearest
+      terminal_intercept_dist: 20.0
+  - name: terminal_40m
+    agent_kwargs:
+      planner_mode: predictive_nearest
+      terminal_intercept_dist: 40.0
+  - name: no_terminal
+    agent_kwargs:
+      planner_mode: predictive_nearest
+      terminal_intercept_dist: 0.0
+
+  # === Terminal gain multiplier sweep ===
+  - name: terminal_gain_2x
+    agent_kwargs:
+      planner_mode: predictive_nearest
+      terminal_gain_mult: 2.0
+  - name: terminal_gain_1x
+    agent_kwargs:
+      planner_mode: predictive_nearest
+      terminal_gain_mult: 1.0
+
+  # === Best combos ===
+  - name: low_gain_terminal_40m
+    agent_kwargs:
+      planner_mode: predictive_nearest
+      kp_tvc: 8.0
+      kd_tvc: 1.5
+      terminal_intercept_dist: 40.0
+      terminal_gain_mult: 2.0
+  - name: low_gain_cluster
     agent_kwargs:
       planner_mode: cluster_predictive
-      pn_gain: 0.0
-      min_launch_inclination: 75.0
-      launch_prediction_time: 8.0
-      boost_min_time: 2.0
-      boost_max_time: 5.0
-      guidance_start_altitude: 80.0
-      guidance_start_speed: 45.0
+      kp_tvc: 8.0
+      kd_tvc: 1.5
