@@ -91,6 +91,11 @@ def run_single_case(case: dict) -> dict:
         "target_switch_count": 0,
         "mean_target_dwell_time": 0.0,
         "last_target_index": -1,
+        "max_altitude_agl": 0.0,
+        "max_speed": 0.0,
+        "min_balloon_dist": float("inf"),
+        "min_balloon_dist_time": 0.0,
+        "tvc_saturation_ratio": 0.0,
         "runtime_sec": 0.0,
         "error": "",
     }
@@ -108,10 +113,46 @@ def run_single_case(case: dict) -> dict:
         terminated = False
         truncated = False
         steps = 0
+        elevation = float(given_parameters["environment"]["elevation"])
+        gimbal_limit = float(given_parameters["rocket"]["control"]["gimbal_range"])
+        max_alt_agl = 0.0
+        max_speed = 0.0
+        min_bdist = float("inf")
+        min_bdist_time = 0.0
+        tvc_sat_steps = 0
+        tvc_total_steps = 0
+        launched = False
+
         while not (terminated or truncated):
             action = agent.get_action(observation)
+            if action["launch"] and not launched:
+                launched = True
             observation, _reward, terminated, truncated, info = env.step(action)
             steps += 1
+
+            rs = info["rocket_states"]
+            if launched and not np.isnan(rs[0]):
+                alt_agl = float(rs[2]) - elevation
+                spd = float(np.linalg.norm(rs[3:6]))
+                max_alt_agl = max(max_alt_agl, alt_agl)
+                max_speed = max(max_speed, spd)
+
+                statuses = np.asarray(observation["balloon_status"]).reshape(-1)
+                states = np.asarray(observation["balloon_states"], dtype=float)
+                released = np.flatnonzero(statuses == 1)
+                if len(released) > 0:
+                    dists = np.linalg.norm(states[released, :3] - rs[:3], axis=1)
+                    cd = float(np.min(dists))
+                    if cd < min_bdist:
+                        min_bdist = cd
+                        min_bdist_time = float(observation["simulation_time"])
+
+                tvc = action["tvc"]
+                tvc_mag = max(abs(float(tvc[0])), abs(float(tvc[1])))
+                tvc_total_steps += 1
+                if tvc_mag >= gimbal_limit * 0.95:
+                    tvc_sat_steps += 1
+
             if max_steps is not None and steps >= int(max_steps):
                 truncated = True
 
@@ -127,6 +168,13 @@ def run_single_case(case: dict) -> dict:
                     stats.get("mean_target_dwell_time", 0.0)
                 ),
                 "last_target_index": int(stats.get("last_target_index", -1)),
+                "max_altitude_agl": round(max_alt_agl, 2),
+                "max_speed": round(max_speed, 2),
+                "min_balloon_dist": round(min_bdist, 2) if min_bdist < 1e6 else -1.0,
+                "min_balloon_dist_time": round(min_bdist_time, 2),
+                "tvc_saturation_ratio": round(
+                    tvc_sat_steps / max(tvc_total_steps, 1), 4
+                ),
             }
         )
     except Exception as exc:
@@ -170,6 +218,47 @@ def reduce_metrics(rows: list[dict], success_thresholds: list[int]) -> dict:
                 "mean_target_dwell_time_mean": float(
                     statistics.fmean(
                         float(row.get("mean_target_dwell_time", 0.0))
+                        for row in variant_rows
+                        if not row.get("error")
+                    )
+                ),
+                "max_altitude_agl_mean": float(
+                    statistics.fmean(
+                        float(row.get("max_altitude_agl", 0.0))
+                        for row in variant_rows
+                        if not row.get("error")
+                    )
+                ),
+                "max_speed_mean": float(
+                    statistics.fmean(
+                        float(row.get("max_speed", 0.0))
+                        for row in variant_rows
+                        if not row.get("error")
+                    )
+                ),
+                "min_balloon_dist_mean": float(
+                    statistics.fmean(
+                        float(row.get("min_balloon_dist", -1.0))
+                        for row in variant_rows
+                        if not row.get("error") and float(row.get("min_balloon_dist", -1.0)) >= 0
+                    )
+                ) if any(
+                    float(row.get("min_balloon_dist", -1.0)) >= 0
+                    for row in variant_rows if not row.get("error")
+                ) else -1.0,
+                "min_balloon_dist_median": float(
+                    statistics.median(
+                        float(row.get("min_balloon_dist", -1.0))
+                        for row in variant_rows
+                        if not row.get("error") and float(row.get("min_balloon_dist", -1.0)) >= 0
+                    )
+                ) if any(
+                    float(row.get("min_balloon_dist", -1.0)) >= 0
+                    for row in variant_rows if not row.get("error")
+                ) else -1.0,
+                "tvc_saturation_ratio_mean": float(
+                    statistics.fmean(
+                        float(row.get("tvc_saturation_ratio", 0.0))
                         for row in variant_rows
                         if not row.get("error")
                     )
